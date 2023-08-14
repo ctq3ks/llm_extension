@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page</title>
+  <script src="./chrome_extension/scripts/content.js"></script>
+  <style>
+    .editable {
+      border: 1px solid #ccc;
+      padding: 5px;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="editable" id="testTextArea" contenteditable="true">
+    This is a div with text.
+  </div>
+   <!-- Textarea -->
+   <textarea id="testTextarea" rows="4" cols="50">
+    This is a textarea.
+    </textarea>
+
+    <!-- Input Field -->
+    <input type="text" id="testInput" value="This is an input field.">
+
+    <!-- Other Contenteditable Element -->
+    <div class="editable" id="testOther" contenteditable="true">
+        <p>
+            This is another editable element.
+        </p>
+    </div>
+</body>
+</html>
