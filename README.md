@@ -1,4 +1,4 @@
-# Chrome Extension with Serverless Backend on AWS
+# LLM Chrome Extension with Serverless Backend on AWS
 
 This repository contains a Chrome extension with a serverless backend deployed on AWS using CloudFormation. This README will guide you through the process of setting up and running the project locally.
 
