@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  aissistant
+
+  Sample SAM Template for aissistant
+
+Parameters: 
+  OpenAIOrgID:
+    Type: String
+    Description: The name for the openai organization ID
+  OpenAIAPIKey:
+    Type: String
+    Description: The api key for the openai organization
+  Stage:
+    Type: String
+    Description: The stage for the stack
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Environment:
+      Variables:
+        OPENAI_ORG_ID: !Ref OpenAIOrgID
+        OPENAI_API_KEY: !Ref OpenAIAPIKey
+
+Resources:
+  # API Resource
+  AissistantApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Description: API for chrome extension
+      StageName: !Ref Stage
+      # Auth:
+      #   DefaultAuthorizer: AissistantAuth
+      #   Authorizers:
+      #     AissistantAuth:
+      #       UserPoolArn: !GetAtt AissistantPool.Arn
+      #       AuthorizationScopes:
+      #         - !Sub "${AissistantPoolResourceServer}/aissistant.scope"
+            # IdentitySource: "$request.header.Authorization"
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: 'config/api.yaml'
+
+  # # Cognito Auth Resources
+  AissistantPool:
+    Type: AWS::Cognito::UserPool 
+    Properties: 
+      AdminCreateUserConfig: 
+        AllowAdminCreateUserOnly: true
+      UserPoolName: !Sub ${AWS::StackName}-AissistantPool
+
+  AissistantPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties: 
+      Domain: !Sub aissistant-${AWS::AccountId}
+      UserPoolId: !Ref AissistantPool
+
+  AissistantPoolResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties: 
+        Identifier: aissistant.resourceServer
+        Name: !Sub ${AWS::StackName}-AissistantPoolResourceServer
+        UserPoolId: !Ref AissistantPool
+        Scopes: 
+          - ScopeName: "aissistant.scope"
+            ScopeDescription: "Scope for Aissistant backend."
+
+  AissistantPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: AissistantPoolResourceServer
+    Properties: 
+      UserPoolId: !Ref AissistantPool
+      ClientName: !Sub ${AWS::StackName}-AissistantPoolClient
+      GenerateSecret: true
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - client_credentials
+      AllowedOAuthScopes:
+        - !Sub "${AissistantPoolResourceServer}/aissistant.scope"
+      AccessTokenValidity: 1
+      ExplicitAuthFlows: 
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  PostChatGPTFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-postChatGPT
+      CodeUri: postChatGPT/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 60
+      Architectures:
+        - x86_64
+      # Policies:
+      #   - Version: "2021-10-17"
+      #     Statement:
+      #       - Effect: Allow
+      #         Action: 
+      #           - "sagemaker:InvokeEndpoint"
+      #         Resource: "*"
+
+  PostChatGPTInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PostChatGPTFunction
+      Principal: apigateway.amazonaws.com
+      # SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*/myresource
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  # AissistantApi:
+  #   Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+  #   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  PostChatGPTFunction:
+    Description: "Post ChatGPT Lambda Function ARN"
+    Value: !GetAtt PostChatGPTFunction.Arn

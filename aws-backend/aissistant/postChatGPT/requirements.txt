@@ -1,0 +1,4 @@
+requests==2.29.0
+openai
+# urllib==1.26.15
+# pytz==2023.3
